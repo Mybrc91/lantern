@@ -5,6 +5,7 @@
 - [OSX 10.8 and above](https://raw.githubusercontent.com/getlantern/lantern-binaries/master/lantern-installer-beta.dmg)
 - [Ubuntu 14.04 32 bit](https://raw.githubusercontent.com/getlantern/lantern-binaries/master/lantern-installer-beta-32-bit.deb)
 - [Ubuntu 14.04 64 bit](https://raw.githubusercontent.com/getlantern/lantern-binaries/master/lantern-installer-beta-64-bit.deb)
+- [Arch Linux](https://aur.archlinux.org/packages/lantern)
 
 **If you're looking for help, please visit below user forums:**
 
@@ -12,301 +13,173 @@
 
 ## Building Lantern
 
-### Requisites
+### Prerequisites
 
-* [Go 1.4.x](https://golang.org/dl/).
-* [Docker](https://www.docker.com/).
+* [Git](https://git-scm.com/downloads) - `brew install git`, `apt-get install git`, etc
+* [Go 1.6 or higher](https://golang.org/dl/).
 * [GNU Make](https://www.gnu.org/software/make/)
-* An OSX or Linux host.
 
-We are going to create a Docker image that will take care of compiling Lantern
-for Windows and Linux, in order to compile Lantern for OSX you'll need an OSX
-host, this is a limitation caused by Lantern depending on C code and OSX build
-tools for certain features.
-
-### Docker Installation Instructions
-
-1. Get the [Docker Toolbox](https://www.docker.com/docker-toolbox)
-2. Install docker per [these instructions](https://docs.docker.com/mac/step_one/)
-
-After installation, you'll have a docker machine called `default`, which is what the build script uses. You'll probably want to increase the memory and cpu for the default machine, which will require you to recreate it:
-
-```bash
-docker-machine rm default
-docker-machine create --driver virtualbox --virtualbox-cpu-count 2 --virtualbox-memory 4096 default
-```
-
-### Migrating from boot2docker
-
-If you already have a boot2docker vm that you want to use with the new
-docker-toolbox, you can migrate it with this command:
-
-```bash
-docker-machine create -d virtualbox --virtualbox-import-boot2docker-vm boot2docker-vm default
-```
-
-### Building the docker image
-
-In order to build the docker image open a terminal, `cd` into the
-`lantern` project and execute `make docker`:
+To build and run Lantern desktop, just do:
 
 ```sh
+git clone https://github.com/getlantern/lantern.git
 cd lantern
-make docker
+make lantern
+./lantern
 ```
 
-This will take a while, be patient, you only need to do this once.
-
-## Building Lantern binaries
-
-### Building for Linux
-
-If you want to build for Linux on all supported architectures, use:
+During development, you'll likely want to do a clean build like this:
 
 ```sh
-make linux
+make clean-desktop lantern && ./lantern
 ```
 
-You can also build for Linux 386:
+## Building Mobile
 
-```sh
-make linux-386
-file lantern_linux_386
-# lantern_linux_386: ELF 32-bit LSB executable, Intel 80386, version 1 (SYSV), dynamically linked (uses shared libs), not stripped
+### Mobile Prerequisites
+
+Building the mobile library and app requires the following:
+
+1. Install Java JDK 7 or 8
+2. Install Go 1.6 or higher
+3. Install [Android SDK Tools](http://developer.android.com/sdk/index.html#Other)
+4. Install NDK(http://developer.android.com/ndk/downloads/index.html)
+
+Make sure to set these environment variables before trying to build any Android
+components (replace the paths based on wherever you've installed the Android
+SDK and NDK).
+
+```bash
+export ANDROID_HOME=/opt/adt-bundle-mac-x86_64-20130917/sdk
+export PATH=$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools:$PATH
+export NDK_HOME=/opt/android-ndk-r10e
+export PATH=$NDK_HOME:$PATH
 ```
 
-Or only for amd64:
+### Go Android Library
 
-```sh
-make linux-amd64
-file lantern_linux_amd64
-# lantern_linux_amd64: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked (uses shared libs), not stripped
-```
-
-Or ARM:
-
-```sh
-make linux-arm
-file lantern_linux_arm
-# lantern_linux_arm: ELF 32-bit LSB executable, ARM, version 1 (SYSV), dynamically linked (uses shared libs), not stripped
-```
-
-
-### Building for Windows
-
-Lantern supports the 386 architecture on Windows. In order to build Lantern on
-Windows use:
-
-```sh
-make windows
-file lantern_windows_386.exe
-# lantern_windows_386.exe: PE32 executable for MS Windows (GUI) Intel 80386 32-bit
-```
-
-### Building for OSX
-
-Lantern supports the amd64 architecture on OSX. In order to build Lantern on
-OSX you'll need an OSX host. Run the following command:
-
-```sh
-make darwin
-file lantern_darwin_amd64
-# lantern_darwin_amd64: Mach-O 64-bit executable x86_64
-```
-
-### Building all binaries
-
-If you want to build all supported binaries of Lantern use the `binaries` task:
-
-```sh
-make binaries
-```
-
-### Building headless version
-
-If `HEADLESS` environment variable is set, the generated binaries will be
-headless, that is, it doesn't depend on the systray support libraries, and
-will not show systray or UI.
-
-## Packaging
-
-Packaging requires some special environment variables.
-
-### OSX
-
-Lantern on OS X is packaged as the `Lantern.app` app bundle, distributed inside
-of a drag-and-drop dmg installer. The app bundle and dmg can be created using:
-
-```sh
-VERSION=2.0.0-beta2 make package-darwin
-file Lantern.dmg
-# Lantern.dmg: bzip2 compressed data, block size = 100k
-```
-
-`make package-darwin` signs the Lantern.app using the BNS code signing
-certificate in your KeyChain. The
-[certificate](https://github.com/getlantern/too-many-secrets/blob/master/osx-code-signing-certificate.p12)
-and
-[password](https://github.com/getlantern/too-many-secrets/blob/master/osx-code-signing-certificate.p12.txt)
-can be obtained from
-[too-many-secrets](https://github.com/getlantern/too-many-secrets) and must be
-installed to the system's key chain beforehand.
-
-If signing fails, the script will still build the app bundle and dmg, but the
-app bundle won't be signed. Unsigned app bundles can be used for testing but
-should never be distributed to end users.
-
-The background image for the DMG is
-`installer-resources/darwin/dmgbackground.svg`.
-
-### Packaging for Windows
-
-Lantern on Windows is distributed as an installer built with
-[nsis](http://nsis.sourceforge.net/). The installer is built and signed with
-`make package-windows`.
-
-For `make package-windows` to be able to sign the executable, the environment varaibles
-`SECRETS_DIR` and `BNS_CERT_PASS` must be set to point to the secrets directory
-and the
-[password](https://github.com/getlantern/too-many-secrets/blob/master/build-installers/env-vars.txt#L3)
-of the BNS certificate.  You can set the environment variables and run the
-script on one line, like this:
-
-```sh
-SECRETS_DIR=$PATH_TO_TOO_MANY_SECRETS BNS_CERT_PASS='***' \
-VERSION=2.0.0-beta1 make package-windows
-```
-
-### Packaging for Ubuntu
-
-Lantern on Ubuntu is distributed as a `.deb` package. You can generate a Debian
-package with:
-
-```sh
-VERSION=2.0.0-beta2 make package-linux
-```
-
-The version string must match the Debian requirements:
-
-https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
-
-This will build both 386 and amd64 packages.
-
-### Generating all packages
-
-Use the `make packages` task combining all the arguments that `package-linux`,
-`package-windows` and `package-darwin` require.
-
-```sh
-SECRETS_DIR=$PATH_TO_TOO_MANY_SECRETS BNS_CERT_PASS='***' \
-VERSION=2.0.0-beta1 make packages
-```
-
-## Creating releases
-
-### Releasing for QA
-
-In order to release for QA, first obtain an [application token][1] from Github
-(`GH_TOKEN`) and then make sure that [s3cmd](https://github.com/s3tools/s3cmd)
-is correctly configured:
-
-```
-s3cmd --config
-```
-
-Then, create all distribution packages:
-
-```
-[...env variables...] make packages
-```
-
-Finally, use `release-qa` to upload the packages that were just generated to
-both AWS S3 and the Github release page:
-
-```
-VERSION=2.0.0-beta5 make release-qa
-```
-
-### Releasing Beta
-
-If you want to release a beta you must have created a package for QA first,
-then use the `release-beta` task:
-
-```
-make release-beta
-```
-
-`release-beta` will promote the QA files that are currently in S3 to beta.
-
-### Releasing for production
-
-After you're satisfied with a beta version, it will be time to promote beta
-packages to production and to publish the packages for auto-updates:
-
-```
-VERSION=2.0.0-beta5 GH_TOKEN=$GITHUB_TOKEN make release
-```
-
-`make release` expects a `lantern-binaries` directory at `../lantern-binaries`.
-You can provide a different directory by passing the `LANTERN_BINARIES_PATH`
-env variable.
-
-## Other tasks
-
-### Creating the Android embeddable library
-
-In order to build the Android ARM library that can be embedded in applications,
-Lantern is using `gomobile`. This simplifies the process notably.
-
-Currently, as Go 1.5 is not stable, a specific git revision is used within an
-isolated Docker image.
-
-To build a development library (takes shorter time):
+The core Lantern functionality can be packaged into a native Android library
+with:
 
 ```
 make android-lib
 ```
 
-To build the final version for Firetweet:
+### Java Android SDK
+
+The Java-based Android SDK allows easy embedding of Lantern functionality in 3rd
+party Android apps such as Manoto TV. The SDK can be built with:
 
 ```
-make android-lib-dist
+make android-sdk
 ```
 
-If you pass the `FIRETWEET_MAIN_DIR` env variable to `make android-lib`, the
-generated bindings and library will be copied into it:
+### Lantern Mobile Testbed
+
+This simple Android application provides a way to test the Android SDK. It can
+be built with:
 
 ```
-FIRETWEET_MAIN_DIR=/path/to/firetweet/src/main make android-lib
+make android-testbed
 ```
 
-You can also override this environment variable if you want to use the
-[Flashlight Android Tester](https://github.com/getlantern/lantern-mobile-single-app-example) app.
+### Lantern Mobile App
 
-#### Creating the Android library without docker
 
-1. Install Java JDK 7 or 8
-2. Install [Android SDK Tools](http://developer.android.com/sdk/index.html#Other)
-3. Install NDK(http://developer.android.com/ndk/downloads/index.html)
-4. Install [gomobile](https://godoc.org/golang.org/x/mobile/cmd/gomobile)
+## Debug
 
-Useful environment variables (replace the paths based on wherever you've
-installed the Android SDK and NDK).
+To create a debug build of the full lantern mobile app:
 
-```bash
-export ANDROID_HOME=/opt/adt-bundle-mac-x86_64-20130917/sdk
-export PATH=$ANDROID_HOME/tools:$PATH
-export NDK_HOME=/opt/android-ndk-r10e
-export PATH=$NDK_HOME:$PATH
 ```
-)
-
-Then to build the library:
-
-```bash
-make android-lib-local
+make android-debug
 ```
 
+To install on the default device:
+
+```
+make android-install
+```
+
+## Release
+
+To create a release build, add the following to your
+``~/.gradle/gradle.properties`` file:
+
+```
+KEYSTORE_PWD=$KEYSTORE_PASSWORD
+KEYSTORE_FILE=keystore.release.jks
+KEY_PWD=$KEY_PASSWORD
+```
+
+You can find the exact values to add to your gradle.properties
+[here](https://github.com/getlantern/too-many-secrets/blob/master/android/keystore).
+
+Then it can be built with:
+
+```sh
+SECRETS_DIR=$PATH_TO_TOO_MANY_SECRETS \
+VERSION=2.0.0-beta1 make android-release
+```
+
+### Android Tips
+#### Uninstall for All Users
+If you use `adb` to install and debug an app to your Android device during
+development and then subsequently build a signed APK and try to install it on
+that same device, you may receive an unhelpful error saying "App Not Installed".
+This typically means that you tried to install the same app but signed with a
+different key.  The solution is to uninstall the app first, but **you have to
+uninstall it for all users**. You can do this by selecting "Uninstall for all
+users" from:
+
+```
+Settings -> Apps -> [Pick the App] -> Hamburger Menu (...) -> Uninstall for all users.
+```
+
+If you forget to do this and just uninstall normally, you'll still encounter the
+error. To fix this, you'll have to run the app with `adb` again and then
+uninstall for all users.
+
+#### Getting HTTP Connections to Use Proxy
+
+In android, programmatic access to HTTP resources typically uses the
+`HttpURLConnection` class.  You can tell it to use a proxy by setting some
+system properties:
+
+```java
+System.setProperty("http.proxyHost", host);
+System.setProperty("http.proxyPort", port);
+System.setProperty("https.proxyHost", host);
+System.setProperty("https.proxyPort", port);
+```
+
+You can disable proxying by clearing those properties:
+
+```java
+System.clearProperty("http.proxyHost");
+System.clearProperty("http.proxyPort");
+System.clearProperty("https.proxyHost");
+System.clearProperty("https.proxyPort");
+```
+
+However, there is one big caveat - **`HttpURLConnection` uses keep-alives to
+reuse existing TCP connections**. These TCP connections will still be using the
+old proxy settings. This has several implications:
+
+**Set the proxy settings as early in the application's lifecycle as possible**,
+ideally before any `HttpURLConnection`s have been opened.
+
+**Don't expect the settings to take effect immediately** if some
+`HttpURLConnection`s have already been opened.
+
+**Disable keep-alives if you need to**, which you can do like this:
+
+```java
+HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+// Need to force closing so that old connections (with old proxy settings) don't get reused.
+urlConnection.setRequestProperty("Connection", "close");
+```
+
+## Other
 ### Generating assets
 
 ```sh
@@ -357,8 +230,11 @@ per the instructions [here](https://docs.travis-ci.com/user/encrypting-files/).
 
 ### Dev README
 
-Please, go to [README-dev](README-dev.md) for an in-depth explanation of the Lantern internals and
-cloud services.
+Please, go to [README-dev](README-dev.md) for an in-depth explanation of the Lantern internals and cloud services.
+
+### Release README
+
+Please visit [README-release](README-release.md) for details on building release versions of Lantern.
 
 ### Contributing changes
 Lantern is a [gost](https://github.com/getlantern/gost) project that
